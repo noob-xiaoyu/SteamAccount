@@ -376,6 +376,8 @@ namespace SteamAccountManager.ViewModels
 
         private async Task UpdateAllBanStatusAsync()
         {
+            var result = MessageBox.Show("获取不了时间是否继续？", "确认操作", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.No) { return; } 
             await ExecuteApiTask(async (ids, apiKey) =>
             {
                 StatusMessage = $"正在更新 {ids.Count} 个账号的封禁状态...";
@@ -449,4 +451,5 @@ namespace SteamAccountManager.ViewModels
         }
         #endregion
     }
+
 }
