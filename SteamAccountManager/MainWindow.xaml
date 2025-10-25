@@ -14,7 +14,7 @@
 
     <Window.Resources>
         <converters:StringContainsConverter x:Key="StringContainsConverter"/>
-        <!-- 统一按钮样式，去除默认边距 -->
+        <!-- 统一按钮样式 -->
         <Style TargetType="Button">
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="Margin" Value="0,0,5,0"/>
@@ -25,11 +25,10 @@
     <Grid Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- 按钮工具栏 -->
             <RowDefinition Height="Auto"/>
-            <!-- 输入区域 -->
             <RowDefinition Height="*"/>
-            <!-- DataGrid -->
+            <RowDefinition Height="Auto"/>
+            <!-- 状态栏 -->
         </Grid.RowDefinitions>
 
         <!-- 1. 顶部操作按钮工具栏 -->
@@ -39,18 +38,17 @@
                 <Button Content="更改选中" Command="{Binding ChangeAccountCommand}" Background="#CFF4FC"/>
                 <Button Content="启动 Steam 登录" Command="{Binding LaunchSteamLoginCommand}" Background="#FFF3CD"/>
                 <Button Content="批量更新昵称 (API)" Command="{Binding UpdateNicknamesCommand}"/>
-                <Button Content="更新封禁状态 (API)" Command="{Binding UpdateBanStatusCommand}" Background="#F8D7DA"/>
+                <Button Content="更新封禁状态 (API)" Command="{Binding UpdateBanStatusCommand}"/>
                 <Button Content="删除选中" Command="{Binding DeleteAccountCommand}" Background="#F8D7DA"/>
             </StackPanel>
         </Border>
 
-        <!-- 2. API Key 输入区域 (已移除 Steam 路径输入框) -->
+        <!-- 2. API Key 输入区域 -->
         <Grid Grid.Row="1" Margin="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-
             <TextBlock Grid.Column="0" Text="Steam Web API Key:" VerticalAlignment="Center" Margin="5,0,10,0"/>
             <TextBox Grid.Column="1" 
                 x:Name="ApiKeyTextBox" 
@@ -74,12 +72,11 @@
                   Background="White"
                   BorderBrush="#CCCCCC"
                   HorizontalGridLinesBrush="#DDDDDD"
-                  CanUserSortColumns="False"
-                  AlternatingRowBackground="#F9F9F9">
+                  CanUserSortColumns="False">
 
-            <!-- ★ 新增：为每一行添加右键上下文菜单 ★ -->
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="White"/>
                     <Setter Property="ContextMenu">
                         <Setter.Value>
                             <ContextMenu>
@@ -90,6 +87,22 @@
                             </ContextMenu>
                         </Setter.Value>
                     </Setter>
+
+                    <Style.Triggers>
+                        <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                            <Setter Property="Background" Value="#F9F9F9"/>
+                        </Trigger>
+                        <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=冷却中}">
+                            <Setter Property="Background" Value="#FFF3CD"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=封禁}">
+                            <Setter Property="Background" Value="#F8D7DA"/>
+                        </DataTrigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                        </Trigger>
+                    </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
 
@@ -99,11 +112,10 @@
                     <Setter Property="BorderThickness" Value="0"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=封禁}">
-                            <Setter Property="Foreground" Value="Red"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Foreground" Value="#A94442"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=冷却中}">
-                            <Setter Property="Foreground" Value="#D9534F"/>
+                            <Setter Property="Foreground" Value="#8A6D3B"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -117,7 +129,6 @@
             </DataGrid.Resources>
 
             <DataGrid.Columns>
-                <!-- 昵称 / 个人资料 -->
                 <DataGridTemplateColumn Header="昵称 / 个人资料" Width="1.8*" SortMemberPath="Nickname">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -129,19 +140,18 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-
-                <!-- 用户名 -->
                 <DataGridTextColumn Header="用户名" Binding="{Binding Username}" Width="1.2*"/>
-
-                <!-- 二级 -->
                 <DataGridTextColumn Header="二级" Binding="{Binding IsPrimeText}" Width="0.5*"/>
-
-                <!-- 状态 -->
                 <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="1.8*"/>
-
-                <!-- SteamID64 -->
                 <DataGridTextColumn Header="SteamID64" Binding="{Binding SteamId64}" Width="1.5*"/>
             </DataGrid.Columns>
         </DataGrid>
+
+        <!-- 4. 状态栏 -->
+        <StatusBar Grid.Row="3" VerticalAlignment="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>

@@ -13,15 +13,11 @@ namespace SteamAccountManager
         {
             InitializeComponent();
             _accountToEdit = account;
-
-            // 将 DataContext 设置为账号对象，以便使用数据绑定
             this.DataContext = _accountToEdit;
-
             InitializeControls();
             LoadAccountData();
         }
 
-        // 初始化控件的选项
         private void InitializeControls()
         {
             BanStatusComboBox.Items.Add("正常");
@@ -29,9 +25,9 @@ namespace SteamAccountManager
             BanStatusComboBox.Items.Add("VAC 永久封禁");
         }
 
-        // 将账号数据显示在控件中
         private void LoadAccountData()
         {
+            // 设置封禁状态的初始选项
             if (!_accountToEdit.IsBanned)
             {
                 BanStatusComboBox.SelectedItem = "正常";
@@ -41,17 +37,24 @@ namespace SteamAccountManager
                 BanStatusComboBox.SelectedItem = _accountToEdit.BanReason == 1 ? "VAC 永久封禁" : "竞技冷却中";
             }
 
-            // 如果 CooldownExpiry 是一个有效的日期，则设置它
-            if (_accountToEdit.CooldownExpiry > DateTime.MinValue)
+            // ★ 关键修改：计算剩余天数并填充到 TextBox ★
+            // 检查冷却到期时间是否在未来
+            if (_accountToEdit.CooldownExpiry > DateTime.Now)
             {
-                CooldownDatePicker.SelectedDate = _accountToEdit.CooldownExpiry;
+                // 计算剩余的总天数（向上取整）
+                var remainingDays = (int)Math.Ceiling((_accountToEdit.CooldownExpiry - DateTime.Now).TotalDays);
+                CooldownDaysTextBox.Text = remainingDays.ToString();
+            }
+            else
+            {
+                // 如果已过期或无冷却，显示 0
+                CooldownDaysTextBox.Text = "0";
             }
 
-            // 根据初始选择，更新日期选择器的可见性
-            UpdateDatePickerVisibility();
+            // 根据初始选择，更新输入框的可见性
+            UpdateCooldownPanelVisibility();
         }
 
-        // 点击保存按钮时，将控件中的数据写回账号对象
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             // 数据绑定会自动更新大部分属性，我们只需处理封禁逻辑
@@ -60,6 +63,7 @@ namespace SteamAccountManager
                 case "正常":
                     _accountToEdit.IsBanned = false;
                     _accountToEdit.BanReason = 0;
+                    _accountToEdit.CooldownExpiry = DateTime.MinValue; // 清除冷却时间
                     break;
                 case "VAC 永久封禁":
                     _accountToEdit.IsBanned = true;
@@ -69,21 +73,28 @@ namespace SteamAccountManager
                 case "竞技冷却中":
                     _accountToEdit.IsBanned = true;
                     _accountToEdit.BanReason = 2;
-                    // 如果用户没有选择日期，给一个默认值（例如，7天后）
-                    _accountToEdit.CooldownExpiry = CooldownDatePicker.SelectedDate ?? DateTime.Now.AddDays(7);
+
+                    // ★ 关键修改：从 TextBox 读取天数并计算新的到期日期 ★
+                    int daysToAdd = 7; // 设置一个默认值，以防输入无效
+                    if (int.TryParse(CooldownDaysTextBox.Text, out int parsedDays) && parsedDays >= 0)
+                    {
+                        daysToAdd = parsedDays;
+                    }
+                    // 计算新的到期时间
+                    _accountToEdit.CooldownExpiry = DateTime.Now.AddDays(daysToAdd);
                     break;
             }
 
             this.DialogResult = true;
         }
 
-        // 当下拉框选项改变时，决定是否显示日期选择器
         private void BanStatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            UpdateDatePickerVisibility();
+            UpdateCooldownPanelVisibility();
         }
 
-        private void UpdateDatePickerVisibility()
+        // 方法名已更新，更准确
+        private void UpdateCooldownPanelVisibility()
         {
             if (BanStatusComboBox.SelectedItem?.ToString() == "竞技冷却中")
             {

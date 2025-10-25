@@ -8,7 +8,6 @@
         FontSize="13">
     <Grid Margin="15">
 
-        <!-- ★ 关键修复：所有 <Style> 标签都必须放在这个 <Grid.Resources> 块内部 ★ -->
         <Grid.Resources>
             <!-- 定义统一的标签样式 -->
             <Style TargetType="Label">
@@ -85,9 +84,11 @@
         <ComboBox x:Name="BanStatusComboBox" Grid.Row="8" Grid.Column="1" Margin="0,4"
                   SelectionChanged="BanStatusComboBox_SelectionChanged"/>
 
+        <!-- ★ 关键修改：将 DatePicker 替换为 TextBox + TextBlock ★ -->
         <StackPanel x:Name="CooldownPanel" Grid.Row="9" Grid.Column="1" Orientation="Horizontal" Visibility="Collapsed" Margin="0,4">
-            <Label Content="冷却至:" Padding="0" Margin="0,0,5,0"/>
-            <DatePicker x:Name="CooldownDatePicker"/>
+            <Label Content="冷却剩余:" Padding="0" Margin="0,0,5,0"/>
+            <TextBox x:Name="CooldownDaysTextBox" Width="50" VerticalAlignment="Center"/>
+            <TextBlock Text=" 天" VerticalAlignment="Center"/>
         </StackPanel>
 
         <!-- 底部操作按钮 -->

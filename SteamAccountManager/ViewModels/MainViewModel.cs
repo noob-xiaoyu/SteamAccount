@@ -24,66 +24,40 @@ namespace SteamAccountManager.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         #region Fields
-        private SteamApiService _steamApiService;
+        private readonly SteamApiService _steamApiService;
         private readonly string _accountsFilePath;
         private readonly string _configFilePath;
         #endregion
 
         #region Properties
         private ObservableCollection<SteamAccount> _accounts;
-        /// <summary>
-        /// 存储所有 Steam 账号的原始集合。
-        /// </summary>
-        public ObservableCollection<SteamAccount> Accounts
-        {
-            get => _accounts;
-            private set { _accounts = value; OnPropertyChanged(); }
-        }
-
-        /// <summary>
-        /// 用于在UI中展示、排序和过滤的账号视图。
-        /// </summary>
+        public ObservableCollection<SteamAccount> Accounts { get => _accounts; private set { _accounts = value; OnPropertyChanged(); } }
         public ICollectionView AccountsView { get; private set; }
 
         private SteamAccount _selectedAccount;
-        /// <summary>
-        /// 在 DataGrid 中当前选中的账号。
-        /// </summary>
-        public SteamAccount SelectedAccount
-        {
-            get => _selectedAccount;
-            set { _selectedAccount = value; OnPropertyChanged(); }
-        }
+        public SteamAccount SelectedAccount { get => _selectedAccount; set { _selectedAccount = value; OnPropertyChanged(); } }
 
-        private string _steamApiKey = "";
-        /// <summary>
-        /// 用户的 Steam Web API Key。
-        /// </summary>
-        public string SteamApiKey
-        {
-            get => _steamApiKey;
-            set { _steamApiKey = value; OnPropertyChanged(); _steamApiService = new SteamApiService(_steamApiKey); }
-        }
+        private string _steamApiKey;
+        public string SteamApiKey { get => _steamApiKey; set { _steamApiKey = value; OnPropertyChanged(); } }
 
         private string _steamExePath;
-        /// <summary>
-        /// Steam.exe 客户端的完整路径。
-        /// </summary>
-        public string SteamExePath
-        {
-            get => _steamExePath;
-            set { _steamExePath = value; OnPropertyChanged(); }
-        }
+        public string SteamExePath { get => _steamExePath; set { _steamExePath = value; OnPropertyChanged(); } }
 
         private bool _isBusy;
-        /// <summary>
-        /// 指示当前是否有耗时操作（如API调用）正在进行。
-        /// </summary>
         public bool IsBusy
         {
             get => _isBusy;
-            set { _isBusy = value; OnPropertyChanged(); }
+            private set
+            {
+                if (_isBusy == value) return;
+                _isBusy = value;
+                OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
+
+        private string _statusMessage;
+        public string StatusMessage { get => _statusMessage; private set { _statusMessage = value; OnPropertyChanged(); } }
         #endregion
 
         #region Commands
@@ -98,22 +72,19 @@ namespace SteamAccountManager.ViewModels
         #region Constructor
         public MainViewModel()
         {
-            // 初始化路径和核心数据结构
             _accountsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "accounts.json");
             _configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            _steamApiService = new SteamApiService();
+
             Accounts = new ObservableCollection<SteamAccount>();
             AccountsView = CollectionViewSource.GetDefaultView(Accounts);
 
-            // 执行初始化流程
             InitializeCommands();
             InitializeData();
         }
         #endregion
 
-        #region Initialization Methods
-        /// <summary>
-        /// 初始化所有命令。
-        /// </summary>
+        #region Initialization
         private void InitializeCommands()
         {
             BatchAddCommand = new RelayCommand(ShowBatchAddDialog, _ => !IsBusy);
@@ -124,15 +95,105 @@ namespace SteamAccountManager.ViewModels
             UpdateBanStatusCommand = new RelayCommand(async _ => await UpdateAllBanStatusAsync(), _ => CanExecuteApiCommand());
         }
 
-        /// <summary>
-        /// 初始化和加载数据。
-        /// </summary>
         private void InitializeData()
         {
+            StatusMessage = "正在初始化...";
             SetupSorting();
             LoadSettings();
-            _steamApiService = new SteamApiService(SteamApiKey);
             LoadAccounts();
+            StatusMessage = "就绪";
+        }
+        #endregion
+
+        #region Public Methods
+        public void SaveAllOnExit()
+        {
+            SaveAccounts();
+            SaveSettings();
+        }
+        #endregion
+
+        #region File Operations
+        private void LoadSettings()
+        {
+            try
+            {
+                if (File.Exists(_configFilePath))
+                {
+                    var json = File.ReadAllText(_configFilePath);
+                    var settings = JsonConvert.DeserializeObject<AppSettings>(json);
+                    SteamApiKey = settings.SteamApiKey;
+                }
+                else
+                {
+                    SteamApiKey = "";
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] 加载设置失败: {ex.Message}");
+                SteamApiKey = "";
+            }
+            finally
+            {
+                SteamExePath = RegistryHelper.GetSteamPath() ?? @"C:\Program Files (x86)\Steam\steam.exe";
+            }
+        }
+
+        private void LoadAccounts()
+        {
+            try
+            {
+                if (!File.Exists(_accountsFilePath))
+                {
+                    File.WriteAllText(_accountsFilePath, "[]");
+                    StatusMessage = "未找到账号文件，已自动创建。";
+                    return;
+                }
+
+                var jsonContent = File.ReadAllText(_accountsFilePath);
+                var loadedAccounts = JsonConvert.DeserializeObject<List<SteamAccount>>(jsonContent);
+
+                Accounts.Clear();
+                foreach (var acc in loadedAccounts)
+                {
+                    Accounts.Add(acc);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"加载账号文件失败: {ex.Message}", "加载错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                var settings = new AppSettings { SteamApiKey = this.SteamApiKey };
+                var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+                File.WriteAllText(_configFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] 保存设置失败: {ex.Message}");
+            }
+        }
+
+        private void SaveAccounts()
+        {
+            try
+            {
+                if (Accounts != null && Accounts.Any())
+                {
+                    var json = JsonConvert.SerializeObject(Accounts, Formatting.Indented);
+                    File.WriteAllText(_accountsFilePath, json);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ERROR] 保存账号失败: {ex.Message}");
+            }
         }
 
         private void SetupSorting()
@@ -144,94 +205,196 @@ namespace SteamAccountManager.ViewModels
         }
         #endregion
 
-        #region Public Methods
-        /// <summary>
-        /// 在程序退出时，自动、静默地保存所有数据和设置。
-        /// </summary>
-        public void SaveAllOnExit()
+        #region Command Implementations
+        private void ShowBatchAddDialog(object parameter)
         {
-            try
+            var dialog = new BatchAddWindow();
+            dialog.Owner = Application.Current.MainWindow;
+
+            if (dialog.ShowDialog() == true)
             {
-                if (Accounts != null && Accounts.Any())
+                var text = dialog.AccountsText;
+                if (string.IsNullOrWhiteSpace(text)) return;
+
+                var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                int successCount = 0;
+                int errorCount = 0;
+
+                foreach (var line in lines)
                 {
-                    string accountsJson = JsonConvert.SerializeObject(Accounts, Formatting.Indented);
-                    File.WriteAllText(_accountsFilePath, accountsJson);
+                    try
+                    {
+                        SteamAccount newAccount = null;
+
+                        if (line.Contains("----"))
+                        {
+                            var parts = line.Split(new[] { "----" }, StringSplitOptions.None);
+                            if (parts.Length >= 2)
+                            {
+                                var usernamePart = parts[0].Trim();
+                                if (usernamePart.Contains(":")) usernamePart = usernamePart.Split(':')[1].Trim();
+                                if (usernamePart.Contains("：")) usernamePart = usernamePart.Split('：')[1].Trim();
+
+                                newAccount = new SteamAccount
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    Username = usernamePart,
+                                    Password = parts[1].Trim(),
+                                    Nickname = usernamePart,
+                                    Email = parts.Length > 2 ? parts[2].Trim() : "",
+                                    EmailPassword = parts.Length > 3 ? parts[3].Trim() : "",
+                                    IsPrime = false,
+                                    IsBanned = false
+                                };
+                            }
+                        }
+                        else if (line.Contains(","))
+                        {
+                            var parts = line.Split(',');
+                            if (parts.Length == 3)
+                            {
+                                newAccount = new SteamAccount
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    Username = parts[0].Trim(),
+                                    Password = parts[1].Trim(),
+                                    Nickname = parts[2].Trim(),
+                                    IsPrime = false,
+                                    IsBanned = false
+                                };
+                            }
+                        }
+
+                        if (newAccount != null)
+                        {
+                            Accounts.Add(newAccount);
+                            successCount++;
+                        }
+                        else
+                        {
+                            errorCount++;
+                        }
+                    }
+                    catch
+                    {
+                        errorCount++;
+                    }
                 }
+                MessageBox.Show($"批量添加完成！\n成功添加: {successCount} 个\n格式错误: {errorCount} 个", "操作结果", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch { /* 静默保存，忽略错误 */ }
+        }
 
-            try
+        private void ChangeSelectedAccount(object parameter)
+        {
+            if (SelectedAccount == null) return;
+
+            var editWindow = new EditAccountWindow(SelectedAccount);
+            editWindow.Owner = Application.Current.MainWindow;
+            editWindow.ShowDialog();
+        }
+
+        private void DeleteSelectedAccount(object parameter)
+        {
+            if (SelectedAccount == null) return;
+
+            var result = MessageBox.Show($"确定要删除账号 '{SelectedAccount.Nickname}' ({SelectedAccount.Username}) 吗？\n此操作不可撤销！", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
             {
-                var settings = new AppSettings { SteamApiKey = this.SteamApiKey };
-                string settingsJson = JsonConvert.SerializeObject(settings, Formatting.Indented);
-                File.WriteAllText(_configFilePath, settingsJson);
+                Accounts.Remove(SelectedAccount);
             }
-            catch { /* 静默保存，忽略错误 */ }
         }
-        #endregion
 
-        #region Private Helper Methods (File IO)
-        private void LoadSettings()
+        private async Task LaunchSteamWithSelectedAccount()
         {
-            if (File.Exists(_configFilePath))
+            if (SelectedAccount == null) return;
+
+            if (string.IsNullOrEmpty(SteamExePath) || !File.Exists(SteamExePath))
             {
-                try
-                {
-                    var json = File.ReadAllText(_configFilePath);
-                    var settings = JsonConvert.DeserializeObject<AppSettings>(json);
-                    SteamApiKey = settings.SteamApiKey;
-                }
-                catch { ApplyDefaultSettings(); }
+                MessageBox.Show("Steam.exe 路径无效或未找到！", "路径错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
-            else { ApplyDefaultSettings(); }
-        }
 
-        private void ApplyDefaultSettings()
-        {
-            var detectedPath = RegistryHelper.GetSteamPath();
-            this.SteamApiKey = "";
-        }
-
-        private void LoadAccounts()
-        {
-            if (!File.Exists(_accountsFilePath))
+            if (ProcessHelper.IsSteamRunning())
             {
-                try
+                var result = MessageBox.Show(
+                    "Steam 正在运行中。\n为了使用新账号登录，需要先关闭当前的 Steam 进程。\n\n是否继续？",
+                    "确认操作",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.No)
                 {
-                    File.WriteAllText(_accountsFilePath, "[]");
-                    MessageBox.Show("未找到 accounts.json，已为您自动创建一个新文件。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"创建新配置文件失败: {ex.Message}", "严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+
+                ProcessHelper.KillSteamProcesses();
+                await Task.Delay(2000);
+            }
+
+            string username = SelectedAccount.Username;
+            string password = SelectedAccount.Password;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("选中账号的用户名或密码为空，无法登录。", "信息不完整", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             try
             {
-                string jsonContent = File.ReadAllText(_accountsFilePath);
-                var loadedAccounts = JsonConvert.DeserializeObject<List<SteamAccount>>(jsonContent);
-                Accounts.Clear();
-                foreach (var acc in loadedAccounts) { Accounts.Add(acc); }
-                RefreshCommandStates();
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = SteamExePath,
+                    Arguments = $"-login \"{username}\" \"{password}\""
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"启动 Steam 失败: {ex.Message}", "启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private async Task UpdateAllNicknamesAsync()
+        {
+            await ExecuteApiTask(async (ids, apiKey) =>
+            {
+                StatusMessage = $"正在更新 {ids.Count} 个账号的昵称...";
+                var nicknames = await _steamApiService.GetPlayerNicknamesAsync(ids, apiKey);
+                int updatedCount = 0;
+                foreach (var account in Accounts.Where(a => !string.IsNullOrEmpty(a.SteamId64)))
+                {
+                    if (nicknames.TryGetValue(account.SteamId64, out var newNickname) && account.Nickname != newNickname)
+                    {
+                        account.Nickname = newNickname;
+                        updatedCount++;
+                    }
+                }
+                StatusMessage = $"昵称更新完成！共更新了 {updatedCount} 个账号。";
+            }, "昵称更新");
+        }
+
+        private async Task UpdateAllBanStatusAsync()
+        {
+            await ExecuteApiTask(async (ids, apiKey) =>
+            {
+                StatusMessage = $"正在更新 {ids.Count} 个账号的封禁状态...";
+                var banStatuses = await _steamApiService.GetPlayerBansAsync(ids, apiKey);
+                int updatedCount = 0;
+                foreach (var account in Accounts.Where(a => !string.IsNullOrEmpty(a.SteamId64)))
+                {
+                    if (banStatuses.TryGetValue(account.SteamId64, out var banStatus))
+                    {
+                        // account.UpdateBanStatusFromApi(banStatus.VACBanned, banStatus.NumberOfGameBans);
+                        updatedCount++;
+                    }
+                }
+                StatusMessage = $"封禁状态更新完成！共检查了 {updatedCount} 个账号。";
+            }, "封禁状态更新");
         }
         #endregion
 
-        #region Private Helper Methods (Commands Logic)
-        private void ShowBatchAddDialog(object parameter) { /* ... 保持不变 ... */ }
-        private void ChangeSelectedAccount(object parameter) { /* ... 保持不变 ... */ }
-        private void DeleteSelectedAccount(object parameter) { /* ... 保持不变 ... */ }
-        private async Task LaunchSteamWithSelectedAccount() { /* ... 保持不变 ... */ }
-
-        /// <summary>
-        /// 检查是否满足执行API命令的前置条件。
-        /// </summary>
+        #region Private Helper Methods
         private bool CanExecuteApiCommand()
         {
             return !IsBusy &&
@@ -239,7 +402,7 @@ namespace SteamAccountManager.ViewModels
                    Accounts.Any(acc => !string.IsNullOrEmpty(acc.SteamId64));
         }
 
-        private async Task UpdateAllNicknamesAsync()
+        private async Task ExecuteApiTask(Func<List<string>, string, Task> apiAction, string taskName)
         {
             if (!CanExecuteApiCommand())
             {
@@ -251,79 +414,32 @@ namespace SteamAccountManager.ViewModels
             try
             {
                 var steamIds = Accounts.Select(a => a.SteamId64).Where(id => !string.IsNullOrEmpty(id)).ToList();
-                var nicknames = await _steamApiService.GetPlayerNicknamesAsync(steamIds);
-
-                int updatedCount = 0;
-                foreach (var account in Accounts)
+                if (steamIds.Any())
                 {
-                    if (!string.IsNullOrEmpty(account.SteamId64) && nicknames.TryGetValue(account.SteamId64, out var newNickname) && account.Nickname != newNickname)
-                    {
-                        account.Nickname = newNickname;
-                        updatedCount++;
-                    }
+                    await apiAction(steamIds, this.SteamApiKey);
                 }
-                MessageBox.Show($"昵称更新完成！共更新了 {updatedCount} 个账号。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                else
+                {
+                    StatusMessage = "列表中没有找到有效的 SteamID。";
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"更新时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusMessage = $"{taskName}失败: {ex.Message}";
+                MessageBox.Show($"在执行“{taskName}”时发生错误:\n\n{ex.Message}", "API 错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
                 IsBusy = false;
             }
-        }
-
-        private async Task UpdateAllBanStatusAsync()
-        {
-            if (!CanExecuteApiCommand())
-            {
-                MessageBox.Show("请输入有效的 Steam API Key 并且列表需要有包含 SteamID 的账号。", "操作无法执行", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            IsBusy = true;
-            try
-            {
-                var steamIds = Accounts.Select(a => a.SteamId64).Where(id => !string.IsNullOrEmpty(id)).ToList();
-                var banStatuses = await _steamApiService.GetPlayerBansAsync(steamIds);
-
-                int updatedCount = 0;
-                foreach (var account in Accounts)
-                {
-                    if (!string.IsNullOrEmpty(account.SteamId64) && banStatuses.TryGetValue(account.SteamId64, out var banStatus))
-                    {
-                        // 假设 Account 模型有这个方法来更新状态
-                        // account.UpdateBanStatusFromApi(banStatus.VACBanned, banStatus.NumberOfGameBans);
-                        updatedCount++;
-                    }
-                }
-                MessageBox.Show($"封禁状态更新完成！共检查了 {updatedCount} 个账号。", "完成", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"更新时发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
-
-        private void RefreshCommandStates()
-        {
-            // 在数据变化后，通知所有命令重新评估它们的 CanExecute 状态
-            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
-        #region INotifyPropertyChanged Implementation
+        #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-            // 当选中项改变时，手动刷新依赖它的命令
             if (propertyName == nameof(SelectedAccount))
             {
                 (ChangeAccountCommand as RelayCommand)?.RaiseCanExecuteChanged();
