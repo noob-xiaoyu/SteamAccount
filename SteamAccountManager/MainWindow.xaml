@@ -20,6 +20,7 @@
             <Setter Property="Margin" Value="0,0,5,0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <converters:StatusToBrushConverter x:Key="StatusToBrushConverter"/>
     </Window.Resources>
 
     <Grid Margin="5">
@@ -76,7 +77,8 @@
 
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
-                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Background" 
+                        Value="{Binding Status, Converter={StaticResource StatusToBrushConverter}}"/>
                     <Setter Property="ContextMenu">
                         <Setter.Value>
                             <ContextMenu>
@@ -87,17 +89,7 @@
                             </ContextMenu>
                         </Setter.Value>
                     </Setter>
-
                     <Style.Triggers>
-                        <Trigger Property="ItemsControl.AlternationIndex" Value="1">
-                            <Setter Property="Background" Value="#F9F9F9"/>
-                        </Trigger>
-                        <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=冷却中}">
-                            <Setter Property="Background" Value="#FFF3CD"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=封禁}">
-                            <Setter Property="Background" Value="#F8D7DA"/>
-                        </DataTrigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
                             <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
