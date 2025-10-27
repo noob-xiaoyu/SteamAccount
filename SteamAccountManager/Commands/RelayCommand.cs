@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Commands/RelayCommand.cs
+using System;
 using System.Windows.Input;
 
 namespace SteamAccountManager.Commands
@@ -14,20 +15,19 @@ namespace SteamAccountManager.Commands
             _canExecute = canExecute;
         }
 
+        public RelayCommand(Action execute, Func<bool> canExecute = null)
+            : this(p => execute(), p => canExecute?.Invoke() ?? true)
+        {
+        }
+
         public event EventHandler CanExecuteChanged
         {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
         }
 
         public bool CanExecute(object parameter) => _canExecute?.Invoke(parameter) ?? true;
-
         public void Execute(object parameter) => _execute(parameter);
-
-        /// <summary>
-        /// ★ 这是我们将要手动调用的核心方法 ★
-        /// 手动触发 CanExecuteChanged 事件，强制 UI 刷新命令状态。
-        /// </summary>
         public void RaiseCanExecuteChanged()
         {
             CommandManager.InvalidateRequerySuggested();
