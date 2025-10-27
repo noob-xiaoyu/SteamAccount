@@ -14,6 +14,7 @@
 
     <Window.Resources>
         <converters:StringContainsConverter x:Key="StringContainsConverter"/>
+        <FrameworkElement x:Key="Proxy" DataContext="{Binding}"/>
         <!-- 统一按钮样式 -->
         <Style TargetType="Button">
             <Setter Property="Padding" Value="10,5"/>
@@ -35,12 +36,12 @@
         <!-- 1. 顶部操作按钮工具栏 -->
         <Border Grid.Row="0" BorderBrush="#CCCCCC" BorderThickness="0,0,0,1" Padding="5">
             <StackPanel Orientation="Horizontal">
-                <Button Content="批量添加" Command="{Binding BatchAddCommand}" Background="#D4EDDA"/>
-                <Button Content="更改选中" Command="{Binding ChangeAccountCommand}" Background="#CFF4FC"/>
-                <Button Content="启动 Steam 登录" Command="{Binding LaunchSteamLoginCommand}" Background="#FFF3CD"/>
-                <Button Content="批量更新昵称 (API)" Command="{Binding UpdateNicknamesCommand}"/>
-                <Button Content="更新封禁状态 (API)" Command="{Binding UpdateBanStatusCommand}"/>
-                <Button Content="删除选中" Command="{Binding DeleteAccountCommand}" Background="#F8D7DA"/>
+                <Button Content="➕批量添加➕" Command="{Binding BatchAddCommand}" Background="#D4EDDA"/>
+                <Button Content="✏️更改选中✏️" Command="{Binding ChangeAccountCommand}" Background="#CFF4FC"/>
+                <Button Content="🚀启动 Steam 登录🚀" Command="{Binding LaunchSteamLoginCommand}" Background="#FFF3CD"/>
+                <Button Content="🔄批量更新昵称 (API)🔄" Command="{Binding UpdateNicknamesCommand}"/>
+                <Button Content="🛡️更新封禁状态 (API)🛡️" Command="{Binding UpdateBanStatusCommand}"/>
+                <Button Content="🗑️删除选中🗑️" Command="{Binding DeleteAccountCommand}" Background="#F8D7DA"/>
             </StackPanel>
         </Border>
 
@@ -77,15 +78,17 @@
 
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
+                    <EventSetter Event="PreviewMouseRightButtonDown" Handler="DataGridRow_PreviewMouseRightButtonDown"/>
                     <Setter Property="Background" 
                         Value="{Binding Status, Converter={StaticResource StatusToBrushConverter}}"/>
                     <Setter Property="ContextMenu">
                         <Setter.Value>
                             <ContextMenu>
-                                <MenuItem Header="更改此账号" Command="{Binding DataContext.ChangeAccountCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
-                                <MenuItem Header="登录此账号" Command="{Binding DataContext.LaunchSteamLoginCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+                                <!-- ★ 关键修复：不再使用 Command，而是使用 Click 事件 ★ -->
+                                <MenuItem Header="更改此账号" Click="ChangeAccountMenuItem_Click"/>
+                                <MenuItem Header="登录此账号" Click="LoginAccountMenuItem_Click"/>
                                 <Separator />
-                                <MenuItem Header="删除此账号" Command="{Binding DataContext.DeleteAccountCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" Foreground="Red"/>
+                                <MenuItem Header="删除此账号" Click="DeleteAccountMenuItem_Click" Foreground="Red"/>
                             </ContextMenu>
                         </Setter.Value>
                     </Setter>
@@ -137,6 +140,7 @@
                 <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="1.8*"/>
                 <DataGridTextColumn Header="SteamID64" Binding="{Binding SteamId64}" Width="1.5*"/>
             </DataGrid.Columns>
+
         </DataGrid>
 
         <!-- 4. 状态栏 -->
@@ -145,5 +149,13 @@
                 <TextBlock Text="{Binding StatusMessage}"/>
             </StatusBarItem>
         </StatusBar>
+
+        <TextBlock Grid.Row="3" Height="18" VerticalAlignment="Center" HorizontalAlignment="Right">
+            <Run Text="GitHub" 
+                 Foreground="Blue" 
+                 TextDecorations="Underline"
+                 Cursor="Hand"
+                 MouseLeftButtonDown="Run_MouseLeftButtonDown"/>
+        </TextBlock>
     </Grid>
 </Window>

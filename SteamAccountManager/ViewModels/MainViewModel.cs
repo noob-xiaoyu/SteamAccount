@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿// --- MainViewModel.cs (最终、完整、已修复的版本) ---
+using Newtonsoft.Json;
 using SteamAccountManager.Commands;
 using SteamAccountManager.Models;
 using SteamAccountManager.Services;
@@ -18,9 +19,6 @@ using System.Windows.Input;
 
 namespace SteamAccountManager.ViewModels
 {
-    /// <summary>
-    /// 主窗口的核心视图模型，负责处理所有业务逻辑和数据状态。
-    /// </summary>
     public class MainViewModel : INotifyPropertyChanged
     {
         #region Fields
@@ -88,9 +86,17 @@ namespace SteamAccountManager.ViewModels
         private void InitializeCommands()
         {
             BatchAddCommand = new RelayCommand(ShowBatchAddDialog, _ => !IsBusy);
-            ChangeAccountCommand = new RelayCommand(ChangeSelectedAccount, _ => SelectedAccount != null && !IsBusy);
-            DeleteAccountCommand = new RelayCommand(DeleteSelectedAccount, _ => SelectedAccount != null && !IsBusy);
-            LaunchSteamLoginCommand = new RelayCommand(async _ => await LaunchSteamWithSelectedAccount(), _ => SelectedAccount != null && !IsBusy);
+            
+            // ★ 最终的 CanExecute 逻辑 ★
+            ChangeAccountCommand = new RelayCommand(ChangeAccount, 
+                param => (param is SteamAccount || SelectedAccount != null) && !IsBusy);
+
+            DeleteAccountCommand = new RelayCommand(DeleteAccount, 
+                param => (param is SteamAccount || SelectedAccount != null) && !IsBusy);
+
+            LaunchSteamLoginCommand = new RelayCommand(async param => await LaunchSteamWithAccount(param), 
+                param => (param is SteamAccount || SelectedAccount != null) && !IsBusy);
+            
             UpdateNicknamesCommand = new RelayCommand(async _ => await UpdateAllNicknamesAsync(), _ => CanExecuteApiCommand());
             UpdateBanStatusCommand = new RelayCommand(async _ => await UpdateAllBanStatusAsync(), _ => CanExecuteApiCommand());
         }
@@ -284,74 +290,70 @@ namespace SteamAccountManager.ViewModels
             }
         }
 
-        private void ChangeSelectedAccount(object parameter)
+        public void ChangeAccount(object parameter)
         {
-            if (SelectedAccount == null) return;
-
-            var editWindow = new EditAccountWindow(SelectedAccount);
-            editWindow.Owner = Application.Current.MainWindow;
-            editWindow.ShowDialog();
-        }
-
-        private void DeleteSelectedAccount(object parameter)
-        {
-            if (SelectedAccount == null) return;
-
-            var result = MessageBox.Show($"确定要删除账号 '{SelectedAccount.Nickname}' ({SelectedAccount.Username}) 吗？\n此操作不可撤销！", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Yes)
+            var accountToEdit = parameter as SteamAccount ?? this.SelectedAccount;
+            if (accountToEdit != null)
             {
-                Accounts.Remove(SelectedAccount);
+                var editWindow = new EditAccountWindow(accountToEdit);
+                editWindow.Owner = Application.Current.MainWindow;
+                editWindow.ShowDialog();
             }
         }
 
-        private async Task LaunchSteamWithSelectedAccount()
+        public void DeleteAccount(object parameter)
         {
-            if (SelectedAccount == null) return;
-
-            if (string.IsNullOrEmpty(SteamExePath) || !File.Exists(SteamExePath))
+            var accountToDelete = parameter as SteamAccount ?? this.SelectedAccount;
+            if (accountToDelete != null)
             {
-                MessageBox.Show("Steam.exe 路径无效或未找到！", "路径错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (ProcessHelper.IsSteamRunning())
-            {
-                var result = MessageBox.Show(
-                    "Steam 正在运行中。\n为了使用新账号登录，需要先关闭当前的 Steam 进程。\n\n是否继续？",
-                    "确认操作",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.No)
+                var result = MessageBox.Show($"确定要删除账号 '{accountToDelete.Nickname}' ({accountToDelete.Username}) 吗？\n此操作不可撤销！", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (result == MessageBoxResult.Yes)
                 {
+                    Accounts.Remove(accountToDelete);
+                }
+            }
+        }
+
+        public async Task LaunchSteamWithAccount(object parameter)
+        {
+            var accountToLogin = parameter as SteamAccount ?? this.SelectedAccount;
+            if (accountToLogin != null)
+            {
+                if (string.IsNullOrEmpty(SteamExePath) || !File.Exists(SteamExePath))
+                {
+                    MessageBox.Show("Steam.exe 路径无效或未找到！", "路径错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                ProcessHelper.KillSteamProcesses();
-                await Task.Delay(2000);
-            }
-
-            string username = SelectedAccount.Username;
-            string password = SelectedAccount.Password;
-
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-            {
-                MessageBox.Show("选中账号的用户名或密码为空，无法登录。", "信息不完整", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            try
-            {
-                Process.Start(new ProcessStartInfo
+                if (ProcessHelper.IsSteamRunning())
                 {
-                    FileName = SteamExePath,
-                    Arguments = $"-login \"{username}\" \"{password}\""
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"启动 Steam 失败: {ex.Message}", "启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var result = MessageBox.Show(
+                        "Steam 正在运行中。\n为了使用新账号登录，需要先关闭当前的 Steam 进程。\n\n是否继续？",
+                        "确认操作",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.No) return;
+
+                    ProcessHelper.KillSteamProcesses();
+                    await Task.Delay(2000);
+                }
+
+                string username = accountToLogin.Username;
+                string password = accountToLogin.Password;
+
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+                {
+                    MessageBox.Show("选中账号的用户名或密码为空，无法登录。", "信息不完整", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                try
+                {
+                    Process.Start(new ProcessStartInfo { FileName = SteamExePath, Arguments = $"-login \"{username}\" \"{password}\"" });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"启动 Steam 失败: {ex.Message}", "启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
@@ -376,8 +378,12 @@ namespace SteamAccountManager.ViewModels
 
         private async Task UpdateAllBanStatusAsync()
         {
-            var result = MessageBox.Show("获取不了时间是否继续？", "确认操作", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (result == MessageBoxResult.No) { return; } 
+            var result = MessageBox.Show(
+                    "获取不了时间是否继续？",
+                    "确认操作",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+            if (result == MessageBoxResult.No) { return; }
             await ExecuteApiTask(async (ids, apiKey) =>
             {
                 StatusMessage = $"正在更新 {ids.Count} 个账号的封禁状态...";
@@ -451,5 +457,4 @@ namespace SteamAccountManager.ViewModels
         }
         #endregion
     }
-
 }
