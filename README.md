@@ -24,7 +24,7 @@
 
 ### 使用方法
 
-1.  从 **[Releases](https://github.com/noob-xiaoyu/SteamAccount/releases)** 页面下载最新的 `.exe`。
+1.  从 **[Releases](https://github.com/noob-xiaoyu/SteamAccount/releases)** 页面下载最新的 `.exe`可执行文件。
 2.  运行 `SteamAccountManager.exe`。
 
 ### 首次运行
@@ -35,7 +35,7 @@
 ### 获取并设置 Steam API Key
 
 为了使用“更新昵称”和“更新封禁状态(无法获取时间)”功能，您需要一个 Steam Web API 密钥。
-1.  [获取Steam API]([https://github.com/noob-xiaoyu/SteamAccount/blob/main/](https://github.com/noob-xiaoyu/SteamAccount/blob/main/Get_Steam-API.md))
+1.  **[获取Steam API](https://github.com/noob-xiaoyu/SteamAccount/blob/main/Get_Steam-API.md)
 
 ## 📦 项目结构
 
