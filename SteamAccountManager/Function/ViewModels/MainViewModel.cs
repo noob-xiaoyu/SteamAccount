@@ -44,17 +44,7 @@ namespace SteamAccountManager.ViewModels
         public string SteamExePath { get => _steamExePath; set { _steamExePath = value; OnPropertyChanged(); } }
 
         private bool _isBusy;
-        public bool IsBusy
-        {
-            get => _isBusy;
-            private set
-            {
-                if (_isBusy == value) return;
-                _isBusy = value;
-                OnPropertyChanged();
-                CommandManager.InvalidateRequerySuggested();
-            }
-        }
+        public bool IsBusy { get => _isBusy; private set { if (_isBusy == value) return; _isBusy = value;OnPropertyChanged();CommandManager.InvalidateRequerySuggested();}}
 
         private string _statusMessage;
         public string StatusMessage { get => _statusMessage; private set { _statusMessage = value; OnPropertyChanged(); } }
@@ -163,6 +153,7 @@ namespace SteamAccountManager.ViewModels
             catch (Exception ex)
             {
                 MessageBox.Show($"加载账号文件失败: {ex.Message}", "加载错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusMessage = $"加载账号文件失败: {ex.Message}";
             }
         }
 
@@ -177,6 +168,7 @@ namespace SteamAccountManager.ViewModels
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ERROR] 保存设置失败: {ex.Message}");
+                StatusMessage = $"[DEBUG - ERROR] 保存设置失败: {ex.Message}";
             }
         }
 
@@ -193,6 +185,7 @@ namespace SteamAccountManager.ViewModels
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ERROR] 保存账号失败: {ex.Message}");
+                StatusMessage = $"[DEBUG - ERROR] 保存账号失败: {ex.Message}";
             }
         }
 
@@ -205,7 +198,7 @@ namespace SteamAccountManager.ViewModels
         }
         #endregion
 
-        #region Command Implementations
+        #region 按钮功能实现
         private void ShowBatchAddDialog(object parameter)
         {
             var dialog = new BatchAddWindow();
@@ -281,6 +274,7 @@ namespace SteamAccountManager.ViewModels
                     }
                 }
                 MessageBox.Show($"批量添加完成！\n成功添加: {successCount} 个\n格式错误: {errorCount} 个", "操作结果", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusMessage = $"批量添加完成！\n成功添加: {successCount} 个\n格式错误: {errorCount} 个";
             }
         }
 
@@ -301,7 +295,7 @@ namespace SteamAccountManager.ViewModels
 
             if (result == MessageBoxResult.Yes)
             {
-                StatusMessage = $"以删除账号{SelectedAccount.Nickname}({SelectedAccount.Username})";
+                StatusMessage = $"删除账号{SelectedAccount.Nickname}({SelectedAccount.Username})";
                 Accounts.Remove(SelectedAccount);
             }
         }
@@ -399,8 +393,7 @@ namespace SteamAccountManager.ViewModels
         private bool CanExecuteApiCommand()
         {
             return !IsBusy &&
-                   !string.IsNullOrWhiteSpace(SteamApiKey) &&
-                   Accounts.Any(acc => !string.IsNullOrEmpty(acc.SteamId64));
+                   !string.IsNullOrWhiteSpace(SteamApiKey);
         }
 
         private async Task ExecuteApiTask(Func<List<string>, string, Task> apiAction, string taskName)

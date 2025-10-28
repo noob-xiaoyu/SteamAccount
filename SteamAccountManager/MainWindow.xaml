@@ -35,12 +35,12 @@
         <!-- 1. 顶部操作按钮工具栏 -->
         <Border Grid.Row="0" BorderBrush="#CCCCCC" BorderThickness="0,0,0,1" Padding="5">
             <StackPanel Orientation="Horizontal">
-                <Button Content="批量添加" Command="{Binding BatchAddCommand}" Background="#D4EDDA"/>
-                <Button Content="更改选中" Command="{Binding ChangeAccountCommand}" Background="#CFF4FC"/>
-                <Button Content="启动 Steam 登录" Command="{Binding LaunchSteamLoginCommand}" Background="#FFF3CD"/>
-                <Button Content="批量更新昵称 (API)" Command="{Binding UpdateNicknamesCommand}"/>
-                <Button Content="更新封禁状态 (API)" Command="{Binding UpdateBanStatusCommand}"/>
-                <Button Content="删除选中" Command="{Binding DeleteAccountCommand}" Background="#F8D7DA"/>
+                <Button Content="➕批量添加➕" Command="{Binding BatchAddCommand}" Background="#D4EDDA"/>
+                <Button Content="✏️更改选中✏️" Command="{Binding ChangeAccountCommand}" Background="#CFF4FC"/>
+                <Button Content="🚀启动 Steam 登录🚀" Command="{Binding LaunchSteamLoginCommand}" Background="#FFF3CD"/>
+                <Button Content="⚠️🗑️删除选中🗑️⚠️" Command="{Binding DeleteAccountCommand}" Background="#F8D7DA"/>
+                <Button Content="🔄批量更新昵称 (API)🔄" Command="{Binding UpdateNicknamesCommand}" Background="#FFF3CD"/>
+                <Button Content="🛡️更新封禁状态 (API)🛡️" Command="{Binding UpdateBanStatusCommand}" Background="#FFF3CD"/>
             </StackPanel>
         </Border>
 
@@ -51,11 +51,12 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="Steam Web API Key:" VerticalAlignment="Center" Margin="5,0,10,0"/>
-            <TextBox Grid.Column="1" 
+            <TextBlock Grid.ColumnSpan="2" Margin="0,5,0,5" TextAlignment="Right"><Run/><Run Text=" "/><Hyperlink NavigateUri="https://github.com/noob-xiaoyu/SteamAccountManager/blob/main/Get-Steam-API/Get_Steam-API.md" RequestNavigate="Hyperlink_RequestNavigate"><Run Text="获取steam API"/></Hyperlink><Run Text=" "/><Run/></TextBlock>
+            <TextBox 
                 x:Name="ApiKeyTextBox" 
-                Text="{Binding SteamApiKey, UpdateSourceTrigger=PropertyChanged}" 
+                Text="{Binding SteamApiKey, UpdateSourceTrigger=PropertyChanged}"  
                 TextChanged="ApiKeyTextBox_TextChanged" 
-                VerticalContentAlignment="Center" Margin="0,5,0,5"/>
+                VerticalContentAlignment="Center" Margin="125,5,84,5" Grid.ColumnSpan="2"/>
         </Grid>
 
         <!-- 3. 账号数据表格 -->
@@ -151,12 +152,6 @@
                 <TextBlock Text="{Binding StatusMessage}"/>
             </StatusBarItem>
         </StatusBar>
-        <TextBlock Grid.Row="5" Grid.ColumnSpan="4" Height="18" VerticalAlignment="Bottom" HorizontalAlignment="Right">
-             <Run Text="GitHub" 
-                Foreground="Blue" 
-                TextDecorations="Underline"
-                Cursor="Hand"
-                MouseLeftButtonDown="Run_MouseLeftButtonDown"/>
-        </TextBlock>
+        <TextBlock Margin="863,4,5,4" TextAlignment="Right" Grid.Row="3"><Run/><Run Text=" "/><Hyperlink NavigateUri="https://github.com/noob-xiaoyu/SteamAccountManager" RequestNavigate="Hyperlink_RequestNavigate"><Run Text="GitHub"/></Hyperlink><Run Text=" "/><Run/></TextBlock>
     </Grid>
 </Window>

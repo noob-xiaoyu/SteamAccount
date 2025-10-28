@@ -17,7 +17,8 @@ namespace SteamAccountManager
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            string uri = e.Uri.AbsoluteUri;
+            Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
             e.Handled = true;
         }
 
@@ -46,14 +47,6 @@ namespace SteamAccountManager
                     }
                 }
             }
-        }
-        private void Run_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "https://github.com/noob-xiaoyu/SteamAccount",
-                UseShellExecute = true
-            });
         }
     }
 }

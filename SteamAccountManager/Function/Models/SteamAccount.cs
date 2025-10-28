@@ -101,30 +101,33 @@ namespace SteamAccountManager.Models
         {
             get
             {
+                // 1. 最优先的“正常路径”检查
                 if (!IsBanned)
                 {
                     return "正常";
                 }
 
-                // 如果 IsBanned 为 true，则继续判断
+                // 2. 如果被封禁，则根据原因进行分支处理
                 switch (BanReason)
                 {
                     case 1:
                         return "VAC 永久封禁";
 
                     case 2:
+                        // 2a. 冷却状态需要进一步判断时间
                         if (CooldownExpiry > DateTime.Now)
                         {
                             TimeSpan timeLeft = CooldownExpiry - DateTime.Now;
+                            // 格式化输出，非常用户友好
                             return $"竞技冷却中 ({timeLeft.Days}天 {timeLeft.Hours}小时)";
                         }
                         else
                         {
-                            return "游戏封禁 (已过期)";
+                            // 2b. 冷却已过期，状态回归正常
+                            return "正常";
                         }
 
-                    default: // ★ 关键修复：添加 default 分支
-                             // 如果 BanReason 不是 1 或 2，提供一个默认返回值
+                    default: // 3. ★ 关键的健壮性设计
                         return "未知封禁";
                 }
             }
@@ -140,10 +143,17 @@ namespace SteamAccountManager.Models
                     return 1; // 正常
                 }
 
-                // ★ 关键修复：使用 if-else if-else 结构确保总有返回值
+                // ★ 使用 if-else if-else 确保逻辑覆盖所有情况
                 if (BanReason == 2)
                 {
-                    return 2; // 竞技冷却中
+                    if (CooldownExpiry > DateTime.Now)
+                    {
+                        return 2; // 冷却中
+                    }
+                    else
+                    {
+                        return 1; // 冷却过期，视为正常
+                    }
                 }
                 else if (BanReason == 1)
                 {
