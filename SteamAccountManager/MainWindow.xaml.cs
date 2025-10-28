@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Navigation;
 
 namespace SteamAccountManager
@@ -45,6 +46,14 @@ namespace SteamAccountManager
                     }
                 }
             }
+        }
+        private void Run_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://github.com/noob-xiaoyu/SteamAccount",
+                UseShellExecute = true
+            });
         }
     }
 }

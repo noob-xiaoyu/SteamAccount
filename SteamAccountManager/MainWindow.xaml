@@ -103,10 +103,16 @@
                     <Setter Property="Padding" Value="5"/>
                     <Setter Property="BorderThickness" Value="0"/>
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=封禁}">
+                        <DataTrigger Binding="{
+                            Binding Status, 
+                            Converter={StaticResource StringContainsConverter}, 
+                            ConverterParameter=VAC}">
                             <Setter Property="Foreground" Value="#A94442"/>
                         </DataTrigger>
-                        <DataTrigger Binding="{Binding Status, Converter={StaticResource StringContainsConverter}, ConverterParameter=冷却中}">
+                        <DataTrigger Binding="{
+                            Binding Status, 
+                            Converter={StaticResource StringContainsConverter}, 
+                            ConverterParameter=CooldownBrush}">
                             <Setter Property="Foreground" Value="#8A6D3B"/>
                         </DataTrigger>
                     </Style.Triggers>
@@ -145,5 +151,12 @@
                 <TextBlock Text="{Binding StatusMessage}"/>
             </StatusBarItem>
         </StatusBar>
+        <TextBlock Grid.Row="5" Grid.ColumnSpan="4" Height="18" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+             <Run Text="GitHub" 
+                Foreground="Blue" 
+                TextDecorations="Underline"
+                Cursor="Hand"
+                MouseLeftButtonDown="Run_MouseLeftButtonDown"/>
+        </TextBlock>
     </Grid>
 </Window>

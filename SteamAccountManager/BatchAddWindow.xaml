@@ -13,13 +13,10 @@
         <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10">
             请粘贴要添加的账号信息，每行一个账号。
             <LineBreak/>
-            <Bold>格式：用户名,密码,昵称 (用英文逗号分隔)</Bold>
+            <Bold>格式1：用户名,密码,昵称 (用英文逗号分隔)</Bold>
             <LineBreak/>
-            示例:
-            <LineBreak/>
-            newuser1,pass123,MyNewAccount1
-            <LineBreak/>
-            newuser2,pass456,MyNewAccount2
+            <Bold>格式2：用户名----密码----其他</Bold>
+
         </TextBlock>
 
         <TextBox x:Name="AccountsTextBox" Grid.Row="1" 
