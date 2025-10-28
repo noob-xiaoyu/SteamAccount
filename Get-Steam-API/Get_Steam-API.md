@@ -22,7 +22,7 @@
 如果您尚未登录，页面会提示您登录。请输入您的 Steam 用户名和密码。
 
   
-![login steam](image/login.png)
+![login steam](Image/login.png)
 
 如果您的账号开启了 Steam Guard 保护，您还需要输入来自手机应用或电子邮件的动态验证码。
 
@@ -31,7 +31,7 @@
 登录成功后，您将看到一个简单的注册表单。
 
   
-![reg-api](image/reg%20api.png)
+![reg-api](Image/reg%20api.png)
 
 请按照以下说明填写：
 
@@ -49,7 +49,7 @@
 点击“注册”后，页面将刷新并显示您新生成的 API 密钥。
 
   
-![end](image/end.png)
+![end](Image/end.png)
 
 *   **密钥 (Key)**：这是一长串由 32 个字母和数字组成的字符串。这就是您需要的 API 密钥。
 *   **复制**：选中这整串密钥，然后右键点击选择“复制”，或使用快捷键 `Ctrl + C`。
